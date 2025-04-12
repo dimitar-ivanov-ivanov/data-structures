@@ -1,12 +1,12 @@
 
 X
-java:S1854'";Remove this useless assignment to local variable "sumList".(ĞÇé8ş¬ÛÅâ2
-L	java:S106"+Replace this use of System.out by a logger.(¸úˆöøÿÿÿÿ8­¹ÌÅâ2
+java:S1854(";Remove this useless assignment to local variable "sumList".(ĞÇé8ş¬ÛÅâ2
+L	java:S106"+Replace this use of System.out by a logger.(¸úˆöøÿÿÿÿ8­¹ÌÅâ2
 M
-java:S1481"+Remove this unused "sumArr" local variable.(ß·×Úşÿÿÿÿ8Ë¦ÚÅâ2
-G	java:S106%"+Replace this use of System.out by a logger.(»Úı®8·¹ÌÅâ2
+java:S1481"+Remove this unused "sumArr" local variable.(ß·×Úşÿÿÿÿ8Ë¦ÚÅâ2
+G	java:S106&"+Replace this use of System.out by a logger.(»Úı®8·¹ÌÅâ2
 I
-java:S1481'",Remove this unused "sumList" local variable.(ĞÇé8¡­ÛÅâ2
-G	java:S106."+Replace this use of System.out by a logger.(£Š8ĞÀÛÅâ2
+java:S1481(",Remove this unused "sumList" local variable.(ĞÇé8¡­ÛÅâ2
+G	java:S106/"+Replace this use of System.out by a logger.(£Š8ĞÀÛÅâ2
 e
-java:S1144"CRemove this unused private "arrayVsListReadPerformanceTest" method.(ıòé‡ùÿÿÿÿ8âğÅâ2
+java:S1144"CRemove this unused private "arrayVsListReadPerformanceTest" method.(ıòé‡ùÿÿÿÿ8€İŞÇâ2

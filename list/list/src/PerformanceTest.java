@@ -11,13 +11,14 @@ public class PerformanceTest {
         ///arrayVsListReadPerformanceTest(10_000_000); // 127 ms for array, 124 for list, Second run 171 array, 119 list
         //arrayVsListReadPerformanceTest(25_000_000); // 166 ms for array, 173 for list
         //arrayVsListReadPerformanceTest(50_000_000); // 335 ms for array, 294 for list, Second run 367 array 371 list
+
+        // Also tested the performance for my List, it was about times slower than the normal List :D
     }
 
     private static void arrayVsListReadPerformanceTest(int elements) {
         Integer[] arr = new Integer[elements];
         java.util.List<Integer> list = new ArrayList<>();
         Random rand = new SecureRandom();
-        rand.nextInt();
         for (int i = 0; i < arr.length; i++) {
             Integer num = rand.nextInt();
             arr[i] = num;

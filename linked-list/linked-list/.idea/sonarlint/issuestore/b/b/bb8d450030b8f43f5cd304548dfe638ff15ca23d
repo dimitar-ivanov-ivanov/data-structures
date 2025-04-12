@@ -1,0 +1,12 @@
+
+L
+java:S3740"/Provide the parametrized type for this generic.(Ôü∑Ø8ﬁ¿Î»‚2
+L	java:S106"+Replace this use of System.out by a logger.(ÒØ«Ÿ˘ˇˇˇˇ8ıáÌ»‚2
+G
+java:S1481"+Remove this unused "sumArr" local variable.(∞û˚8¿†ı»‚2
+L	java:S106$"+Replace this use of System.out by a logger.(øú∑Ω˙ˇˇˇˇ8ˇ˙Ó»‚2
+E
+java:S1481'")Remove this unused "sumL" local variable.(Èæ∞(8§–Û»‚2
+L	java:S106-"+Replace this use of System.out by a logger.(ä˚áé¸ˇˇˇˇ8·ÖÚ»‚2
+Z
+java:S1144">Remove this unused private "compareArrayAndLinkedList" method.(•à‡L8¿·É…‚2
