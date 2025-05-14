@@ -1,7 +1,5 @@
 public class Node<K,V> {
 
-    // immutable node
-    // once created it never changes
     private final K key;
     private final V value;
     private Node<K, V> next;
