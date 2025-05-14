@@ -11,8 +11,7 @@
  - This is done, because if it isn't we get "IndexOutOfBounds" and "IllegalMonitorStateException" and generally bad race conditions where T1 can override data during resize that T2 just put in the map
  - Second problem has that during the "locking" of the map I was locking the locks one by one, BUT that is not an atomic action you need a separate lock for that.
  - Third was not using capacity and counter AtomicInteger
- - Fourth has not double checking the "should resize" condition when we also enter the "resize" method because 
- - Fifth was I using lock() instead of tryLock() for resize lock, this is bad because if you can't acquire the lock that means another thread is already resizing the array
+ - Fourth has not double checking the "should resize" condition when we also enter the "resize" method because there is a gap in time between hitting condition for resizing and acquiring "resize" lock in that time another thread could have done the resizing
 
 ## Findings
  - Force shutdown on executor doesn't do anything if there is a deadlock 
