@@ -1,6 +1,6 @@
 import java.lang.reflect.Array;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MyList<T> {
 
@@ -12,14 +12,26 @@ public class MyList<T> {
 
     private AtomicInteger count = new AtomicInteger(0);
 
-    private ReentrantLock lock;
+    // Old implementation
+    //private ReentrantLock lock;
+
+    // Use ReentrantReadWriteLock becauase it's better instead of locking for writing
+    // the read lock is aware of the write lock, while we are writing we cannot read
+    // otherwise multiple readers can read at the same time and hold the read lock
+    // There is a theorical limit to how many there can be which is 65k threads
+    // But that shouldn't be a problem
+
+    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock.ReadLock readLock = rwLock.readLock();
+    private final ReentrantReadWriteLock.WriteLock writeLock = rwLock.writeLock();
+
+    //If you decide to have 100+ threads probably use StampedLock for better performance
 
     private Class clazz;
 
     public MyList(Class clazz) {
         this.clazz = clazz;
         data = (T[]) Array.newInstance(clazz, capacity.get());
-        lock = new ReentrantLock();
     }
 
     public void add(T element) {
@@ -27,7 +39,7 @@ public class MyList<T> {
             // make sure the thread doesn't hang when it's waiting for a resource
             // and the executor is shutting down
             // this would stop the app from exiting entirely
-            lock.lockInterruptibly();
+            writeLock.lockInterruptibly();
 
             if (shouldBeResized()) {
                 resize();
@@ -39,9 +51,31 @@ public class MyList<T> {
             throw new RuntimeException(e);
         } finally {
             try {
-                lock.unlock();
+                writeLock.unlock();
             } catch (IllegalMonitorStateException ex) {
                 System.out.println(ex);
+            }
+        }
+    }
+
+    public T get(int index) {
+        if (index < 0) {
+            throw new IllegalArgumentException("Not valid index");
+        }
+
+        try {
+            readLock.lockInterruptibly();
+            if (index > capacity.get()) {
+                throw new IllegalArgumentException("Not valid index");
+            }
+            return data[index];
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                readLock.unlock();
+            } catch (IllegalMonitorStateException ex) {
+                System.out.println("Illegal monitor for " + Thread.currentThread().getName() + " trying to unlock readLock while reading " + index);
             }
         }
     }
@@ -68,15 +102,26 @@ public class MyList<T> {
      */
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        // Take the len here because the array can change because of the resize
-        int len = count.get();
+        try {
+            readLock.lockInterruptibly();
+            StringBuilder builder = new StringBuilder();
+            // Take the len here because the array can change because of the resize
+            int len = count.get();
 
-        for (int i = 0; i < len; i++) {
-            builder.append(data[i] + "\n");
+            for (int i = 0; i < len; i++) {
+                builder.append(data[i] + "\n");
+            }
+
+            return builder.toString();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                readLock.unlock();
+            } catch (IllegalMonitorStateException ex) {
+                System.out.println("Illegal monitor for " + Thread.currentThread().getName() + " trying toString()");
+            }
         }
-
-        return builder.toString();
     }
 
 }

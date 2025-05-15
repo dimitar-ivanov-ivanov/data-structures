@@ -12,6 +12,10 @@ public class Main {
         Runnable r = () -> {
             for (int i = 0; i < 50; i++) {
                 list.add(i);
+                list.get(i);
+            }
+            for (int i = 0; i < 10; i++) {
+                list.get(i);
             }
         };
 
@@ -27,7 +31,6 @@ public class Main {
                     System.out.println("Forcing Executor shutdown");
                     executorService.shutdownNow();
                 }
-
             } finally {
                 if (!executorService.isTerminated()) {
                     executorService.shutdownNow();
