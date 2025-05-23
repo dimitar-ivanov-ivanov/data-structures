@@ -4,7 +4,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
         MyConcurrentHashMap<Integer, Integer> concurrentHashMap = new MyConcurrentHashMap<>();
         ExecutorService executorService = null;
 
@@ -14,9 +14,9 @@ public class Main {
 
             SecureRandom random = new SecureRandom();
             Runnable runnable = () -> {
-                for (int i = 0; i < 50; i++) {
+                for (int i = 0; i < 80; i++) {
                     try {
-                        int key = random.nextInt(i + 1);
+                        int key = random.nextInt(i + 10);
                         concurrentHashMap.put(key, i);
                     } catch (IllegalArgumentException ex) {
                         System.out.println(ex.getMessage());
@@ -35,7 +35,7 @@ public class Main {
         } finally {
             executorService.shutdown();
             try {
-                if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+                if (!executorService.awaitTermination(15, TimeUnit.SECONDS)) {
                     System.out.println("Executor did not terminate in the given time");
                     executorService.shutdownNow();
                 }

@@ -13,6 +13,7 @@ public class Main {
             for (int i = 0; i < 50; i++) {
                 list.add(i);
                 list.get(i);
+                System.out.println("Size = " + list.size());
             }
             for (int i = 0; i < 10; i++) {
                 list.get(i);

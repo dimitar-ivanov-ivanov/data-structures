@@ -1,6 +1,5 @@
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Implementation of Concurrent hash map.
@@ -27,7 +26,9 @@ public class MyConcurrentHashMap<K, V> {
 
     // instead of using synchronized lock we acquire locks from this array
     // otherwise synchronize(map[index]) can lead to NPE and I don't want to initialize the nodes with default values
-    private volatile Lock[] locks;
+    // The read lock is aware of the write lock, you can't acquire the read lock if you are currently writing
+    // Many threads(up to 2^16) can acquire the read lock so reading is not blocked
+    private volatile ReentrantReadWriteLock[] locks;
 
     private final AtomicInteger capacity = new AtomicInteger(INITIAL_CAPACITY);
 
@@ -35,14 +36,14 @@ public class MyConcurrentHashMap<K, V> {
 
     // Explicit lock that stops multiple threads from resizing the array at the same time
     // Before I was locking the locks one by one BUT that's not atomic and there were race conditions and deadlocks
-    private final ReentrantLock resizeLock = new ReentrantLock();
+    private final ReentrantReadWriteLock resizeLock = new ReentrantReadWriteLock();
 
     public MyConcurrentHashMap() {
         map = new Node[capacity.get()];
-        locks = new ReentrantLock[capacity.get()];
+        locks = new ReentrantReadWriteLock[capacity.get()];
 
         for (int i = 0; i < capacity.get(); i++) {
-            locks[i] = new ReentrantLock();
+            locks[i] = new ReentrantReadWriteLock();
         }
     }
 
@@ -65,19 +66,19 @@ public class MyConcurrentHashMap<K, V> {
             // When those threads are blocked, the app will never exit regardless of executor shutdown or shutdownNow
 
             // lock bucket for index
-            locks[index].lockInterruptibly();
+            locks[index].writeLock().lockInterruptibly();
             System.out.println("Thread " + Thread.currentThread().getName() + " acquired lock for " + index + " at " + System.currentTimeMillis());
             if (get(key) != null) {
                 throw new IllegalArgumentException("Key " + key + " already present in map");
             }
             if (isResizeNeeded()) {
                 // unlock because after we resize we want to rehash and the index might be different
-                locks[index].unlock();
+                locks[index].writeLock().unlock();
                 tryResize();
                 // rehash again because the old hash may be pointing to a bucket that is filled after resizing and if we add to it
                 // it will cause a disbalance, with a new hash we have a higher chance to hit an empty bucket
                 index = getHash(key, capacity.get());
-                locks[index].lock();
+                locks[index].writeLock().lockInterruptibly();
             }
             addNode(map, key, value, index);
             countElements.incrementAndGet();
@@ -86,7 +87,7 @@ public class MyConcurrentHashMap<K, V> {
         } finally {
             // unlock bucket
             try {
-                locks[index].unlock();
+                locks[index].writeLock().unlock();
             } catch (IllegalMonitorStateException ex) {
                 // Prone to throwing IllegalMonitorException because during resize we unlock the lock before the resizing begins on line 55
                 System.out.println(ex);
@@ -99,21 +100,28 @@ public class MyConcurrentHashMap<K, V> {
     // Only return Value not the entire node
     // Otherwise we'll expose the chain of nodes
     public V get(K key) {
-        int hashCode = getHash(key, capacity.get());
+        int index = getHash(key, capacity.get());
 
-        Node<K,V> node = map[hashCode];
+        Node<K,V> node = map[index];
         if (node == null) {
             return null;
         }
 
-        while (true) {
-            if (node == null) {
-                return null;
+        try {
+            locks[index].readLock().lock();
+            resizeLock.readLock().lock();
+            while (true) {
+                if (node == null) {
+                    return null;
+                }
+                if (node.getKey().equals(key)) {
+                    return node.getValue();
+                }
+                node = node.getNext();
             }
-            if (node.getKey().equals(key)) {
-                return node.getValue();
-            }
-            node = node.getNext();
+        } finally {
+            locks[index].readLock().unlock();
+            resizeLock.readLock().unlock();
         }
     }
 
@@ -142,7 +150,7 @@ public class MyConcurrentHashMap<K, V> {
 
     private void tryResize() {
         try {
-            resizeLock.lockInterruptibly();
+            resizeLock.writeLock().lockInterruptibly();
             System.out.println("Resize lock acquired by " + Thread.currentThread().getName());
             // Another thread could have already resized, during the time between the moment
             // we hit the condition to the moment we acquire the lock
@@ -154,7 +162,7 @@ public class MyConcurrentHashMap<K, V> {
         } catch (InterruptedException e) {
             System.out.println("Thread " + Thread.currentThread().getName() +  " was interrupted");
         } finally {
-            resizeLock.unlock();
+            resizeLock.writeLock().unlock();
             System.out.println("Resize lock release by " + Thread.currentThread().getName());
         }
     }
@@ -167,10 +175,10 @@ public class MyConcurrentHashMap<K, V> {
         // make a variable for double capacity, because we can't set it yet
         int doubleCapacity = capacity.get() * 2;
         Node<K,V>[] newMap = new Node[doubleCapacity];
-        Lock[] newLocks = new Lock[doubleCapacity];
+        ReentrantReadWriteLock[] newLocks = new ReentrantReadWriteLock[doubleCapacity];
 
         for (int i = 0; i < newLocks.length; i++) {
-            newLocks[i] = new ReentrantLock();
+            newLocks[i] = new ReentrantReadWriteLock();
         }
 
         // Old implementation
@@ -212,20 +220,26 @@ public class MyConcurrentHashMap<K, V> {
      */
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        int snapshotCapacity = capacity.get();
 
-        for (int i = 0; i < snapshotCapacity; i++) {
-            builder.append("Bucket " + i + ": ");
-            Node node = map[i];
-            while(true) {
-                if (node == null) {
-                    break;
+        try {
+            resizeLock.readLock().lock();
+            int snapshotCapacity = capacity.get();
+
+            for (int i = 0; i < snapshotCapacity; i++) {
+                builder.append("Bucket " + i + ": ");
+                Node node = map[i];
+                while(true) {
+                    if (node == null) {
+                        break;
+                    }
+                    builder.append("K:" + node.getKey()  + ", V:" + node.getValue() + ",");
+                    node = node.getNext();
                 }
-                builder.append("K:" + node.getKey()  + ", V:" + node.getValue() + ",");
-                node = node.getNext();
+                builder.append("\n");
             }
-            builder.append("\n");
+            return builder.toString();
+        } finally {
+            resizeLock.readLock().unlock();
         }
-        return builder.toString();
     }
 }

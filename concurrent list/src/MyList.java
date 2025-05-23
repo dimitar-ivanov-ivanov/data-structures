@@ -80,6 +80,16 @@ public class MyList<T> {
         }
     }
 
+    /**
+     * Get the current size.
+     * Possibly a little out of sync
+     * Alternative was to use read lock.
+     * @return size of structure
+     */
+    public int size() {
+        return count.get();
+    }
+
     private void resize() {
         capacity.set(capacity.get() * 2);
         T[] newArray = (T[]) Array.newInstance(clazz, capacity.get());
