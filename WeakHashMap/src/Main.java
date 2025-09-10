@@ -1,7 +1,13 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.WeakHashMap;
 
 public class Main {
     public static void main(String[] args) {
+        int[] a = new int[10];
+        Arrays.fill(a, 10);
+
 
         Person p = new Person();
         String personValue = "1";
